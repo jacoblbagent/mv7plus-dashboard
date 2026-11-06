@@ -38,6 +38,13 @@ trying the interface without hardware.
 with the core script inlined, so one file is enough to copy to another machine.
 `dist/mv7plus-dashboard.zip` holds the split version plus the Windows launcher.
 
+### Hosted copy
+
+https://jacoblbagent.github.io/mv7plus-dashboard/ serves the same two files over
+HTTPS. WebHID only needs a secure context, so the hosted page controls whatever
+MV7+ is plugged into the machine running the browser; nothing is sent to the
+server, which only delivers static files.
+
 ## Controls
 
 | Card | What it sets | Device value |
