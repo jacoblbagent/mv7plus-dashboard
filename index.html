@@ -1,0 +1,1309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MV7+ Control</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #12151a;
+    --panel-2: #171b21;
+    --line: #232932;
+    --text: #e6edf3;
+    --dim: #93a1b1;
+    --accent: #7ef0c0;
+    --accent-ink: #06231a;
+    --warn: #ffb86b;
+    --danger: #ff6b6b;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.45 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Sticky top bar: connection state and the two global actions. */
+  header.bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+
+  .brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .brand h1 { font-size: 14px; font-weight: 600; letter-spacing: .2px; margin: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #4a5361; flex: none; }
+  .dot.ok { background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .dot.warn { background: var(--warn); }
+  .dot.err { background: var(--danger); }
+  .tag {
+    color: var(--dim);
+    font-size: 11px;
+    padding: 2px 7px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .actions { margin-left: auto; display: flex; gap: 8px; }
+
+  button {
+    font: inherit;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 11px;
+    cursor: pointer;
+  }
+  button:hover { border-color: #333d4a; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.ghost { background: transparent; }
+  button.danger { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color: var(--danger); background: transparent; }
+
+  main {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 16px 18px 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .card.wide { grid-column: 1 / -1; }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    font-weight: 600;
+  }
+
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+  .row:last-child { margin-bottom: 0; }
+  .row .label { flex: 1; min-width: 0; }
+  .row .value { color: var(--dim); font-variant-numeric: tabular-nums; font-size: 12px; }
+  .hint { color: var(--dim); font-size: 11px; margin: 9px 0 0; }
+  .hint code { color: var(--text); font-size: 11px; }
+
+  /* Mute is the one control that must be unmissable. */
+  .mute-btn {
+    width: 100%;
+    padding: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+    color: var(--accent);
+  }
+  .mute-btn.muted { background: color-mix(in srgb, var(--danger) 18%, transparent); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); color: var(--danger); }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+  input[type="text"], select {
+    font: inherit;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 8px;
+  }
+  input[type="color"] {
+    width: 34px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--panel-2);
+  }
+
+  /* Segmented buttons stand in for radio groups. */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 4px 9px;
+    font-size: 12px;
+    color: var(--dim);
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+  .switch { position: relative; width: 34px; height: 19px; flex: none; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch span {
+    position: absolute;
+    inset: 0;
+    background: #2a3038;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    pointer-events: none;
+    transition: background .12s linear;
+  }
+  .switch span::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #8b98a8;
+    transition: transform .12s linear, background .12s linear;
+  }
+  .switch input:checked + span { background: color-mix(in srgb, var(--accent) 35%, #2a3038); }
+  .switch input:checked + span::after { transform: translateX(15px); background: var(--accent); }
+  .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Level meter */
+  .meter-wrap { position: relative; height: 30px; background: #0a0c0f; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .meter-bar { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #3ddc97, #b9e86b 72%, #ffcc66 88%, #ff6b6b); }
+  .meter-peak { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; opacity: .8; }
+  .meter-scale { display: flex; justify-content: space-between; color: var(--dim); font-size: 10px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .swatch-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .swatch-row .label { flex: 1; color: var(--dim); font-size: 12px; }
+
+  details.log summary { cursor: pointer; color: var(--dim); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  pre.log {
+    margin: 10px 0 0;
+    max-height: 220px;
+    overflow: auto;
+    font: 11px/1.5 ui-monospace, Consolas, monospace;
+    color: #9fb0c3;
+    background: #0a0c0f;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 8px;
+  }
+
+  /* Toasts sit above everything and never block the controls. */
+  #toasts { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 50; pointer-events: none; }
+  .toast {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  }
+  .toast.error { border-left-color: var(--danger); }
+
+  dialog {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    max-width: 380px;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog h3 { margin: 0 0 8px; font-size: 14px; }
+  dialog p { color: var(--dim); font-size: 12px; margin: 0 0 14px; }
+  dialog .actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+  .preset-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .preset {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel-2);
+  }
+  .preset .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preset button { padding: 3px 8px; font-size: 11px; }
+
+  .empty { color: var(--dim); font-size: 12px; padding: 6px 0; }
+
+  @media (max-width: 560px) {
+    header.bar { flex-wrap: wrap; }
+    .actions { margin-left: 0; width: 100%; }
+    .actions button { flex: 1; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <span class="dot" id="statusDot"></span>
+    <h1>MV7+ Control</h1>
+    <span class="tag" id="deviceTag">not connected</span>
+  </div>
+  <div class="actions">
+    <button class="primary" id="btnConnect">Connect microphone</button>
+    <button id="btnRefresh" hidden>Refresh</button>
+    <button class="ghost" id="btnDemo">Demo mode</button>
+  </div>
+</header>
+
+<main>
+  <!-- Input: mute, gain, mode, lock -->
+  <section class="card">
+    <h2>Input</h2>
+    <button class="mute-btn" id="btnMute" aria-pressed="false">Mute</button>
+    <div class="row" style="margin-top: 12px">
+      <span class="label">Gain</span>
+      <span class="value" id="gainValue">0.0 dB</span>
+    </div>
+    <input type="range" id="gain" min="0" max="36" step="0.5" value="0" aria-label="Gain in dB">
+    <div class="row" style="margin-top: 12px">
+      <span class="label">Mode</span>
+      <div class="seg" id="segMode">
+        <button data-value="0">Manual</button>
+        <button data-value="1">Auto Level</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Gain lock</span>
+      <label class="switch"><input type="checkbox" id="gainLocked"><span></span></label>
+    </div>
+    <p class="hint">Manual gain only. Auto Level and gain lock both override the slider.</p>
+  </section>
+
+  <!-- Live meter from the browser's audio input -->
+  <section class="card">
+    <h2>Input level</h2>
+    <div class="meter-wrap">
+      <div class="meter-bar" id="meterBar"></div>
+      <div class="meter-peak" id="meterPeak" style="left: 0"></div>
+    </div>
+    <div class="meter-scale"><span>-60</span><span>-40</span><span>-20</span><span>-6</span><span>0 dBFS</span></div>
+    <div class="row" style="margin-top: 12px">
+      <span class="label value" id="meterDevice">Not metering</span>
+      <button id="btnMeter">Start</button>
+    </div>
+    <div class="row">
+      <span class="label value">Peak</span>
+      <span class="value" id="meterPeakValue">--</span>
+    </div>
+    <p class="hint">Reads the MV7+ through the browser's audio input. Nothing is recorded or transmitted.</p>
+  </section>
+
+  <!-- Processing -->
+  <section class="card">
+    <h2>Processing</h2>
+    <div class="row">
+      <span class="label">Tone</span>
+      <span class="value" id="toneValue">Natural</span>
+    </div>
+    <input type="range" id="tone" min="-100" max="100" step="10" value="0" aria-label="Tone">
+    <div class="row" style="margin-top: 12px">
+      <span class="label">High-pass filter</span>
+      <div class="seg" id="segHpf">
+        <button data-value="0">Off</button>
+        <button data-value="1">75 Hz</button>
+        <button data-value="2">150 Hz</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Compressor</span>
+      <div class="seg" id="segCompressor">
+        <button data-value="0">Off</button>
+        <button data-value="1">Light</button>
+        <button data-value="2">Medium</button>
+        <button data-value="3">Heavy</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Limiter</span>
+      <label class="switch"><input type="checkbox" id="limiter"><span></span></label>
+    </div>
+    <div class="row">
+      <span class="label">Voice Isolation (denoiser)</span>
+      <label class="switch"><input type="checkbox" id="denoiser"><span></span></label>
+    </div>
+    <div class="row">
+      <span class="label">Popper Stopper</span>
+      <label class="switch"><input type="checkbox" id="popper"><span></span></label>
+    </div>
+  </section>
+
+  <!-- Monitoring and reverb -->
+  <section class="card">
+    <h2>Monitoring</h2>
+    <div class="row">
+      <span class="label">Mic level</span>
+      <span class="value" id="micMixValue">0%</span>
+    </div>
+    <input type="range" id="micMix" min="0" max="100" step="1" value="0" aria-label="Mic level">
+    <div class="row" style="margin-top: 12px">
+      <span class="label">Playback level</span>
+      <span class="value" id="playbackMixValue">50%</span>
+    </div>
+    <input type="range" id="playbackMix" min="0" max="100" step="1" value="50" aria-label="Playback level">
+    <div class="row" style="margin-top: 12px">
+      <span class="label">Mute button</span>
+      <label class="switch"><input type="checkbox" id="muteButton"><span></span></label>
+    </div>
+    <p class="hint">Levels for the headphone output. The mute button setting disables the touch panel's mute pad.</p>
+  </section>
+
+  <section class="card">
+    <h2>Reverb</h2>
+    <div class="row">
+      <span class="label">Reverb on output</span>
+      <label class="switch"><input type="checkbox" id="reverbOutput"><span></span></label>
+    </div>
+    <div class="row">
+      <span class="label">Reverb in monitoring</span>
+      <label class="switch"><input type="checkbox" id="reverbMonitor"><span></span></label>
+    </div>
+    <div class="row">
+      <span class="label">Type</span>
+      <div class="seg" id="segReverbType">
+        <button data-value="0">Plate</button>
+        <button data-value="1">Hall</button>
+        <button data-value="2">Studio</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Intensity</span>
+      <span class="value" id="reverbIntensityValue">50%</span>
+    </div>
+    <input type="range" id="reverbIntensity" min="0" max="100" step="1" value="50" aria-label="Reverb intensity">
+  </section>
+
+  <!-- LED touch panel -->
+  <section class="card">
+    <h2>LED panel</h2>
+    <div class="row">
+      <span class="label">Behavior</span>
+      <div class="seg" id="segLedBehavior">
+        <button data-value="0">Live</button>
+        <button data-value="1">Pulsing</button>
+        <button data-value="2">Solid</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Brightness</span>
+      <div class="seg" id="segLedBrightness">
+        <button data-value="3">Low</button>
+        <button data-value="4">Med</button>
+        <button data-value="5">High</button>
+        <button data-value="6">Max</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Live theme</span>
+      <select id="selLiveTheme">
+        <option value="0">Default</option>
+        <option value="1">Seaside</option>
+        <option value="2">Space</option>
+        <option value="3">Fruity</option>
+        <option value="4">Custom</option>
+      </select>
+    </div>
+    <div class="swatch-row"><span class="label">Live edge</span><input type="color" id="ledLiveEdge"></div>
+    <div class="swatch-row"><span class="label">Live middle</span><input type="color" id="ledLiveMiddle"></div>
+    <div class="swatch-row"><span class="label">Live interior</span><input type="color" id="ledLiveInterior"></div>
+    <div class="row">
+      <span class="label">Solid theme</span>
+      <select id="selSolidTheme">
+        <option value="0">Shure</option>
+        <option value="1">Custom</option>
+      </select>
+    </div>
+    <div class="swatch-row"><span class="label">Solid color</span><input type="color" id="ledSolidColor"></div>
+    <div class="row">
+      <span class="label">Pulsing theme</span>
+      <select id="selPulsingTheme">
+        <option value="0">Shure</option>
+        <option value="1">Custom</option>
+      </select>
+    </div>
+    <div class="swatch-row"><span class="label">Pulsing color</span><input type="color" id="ledPulsingColor"></div>
+    <p class="hint">Custom colors only show while the matching theme is set to Custom.</p>
+  </section>
+
+  <!-- Identity and reset -->
+  <section class="card">
+    <h2>Device</h2>
+    <div class="row">
+      <span class="label">Name</span>
+      <input type="text" id="deviceName" maxlength="31" size="16" aria-label="Device name">
+      <button id="btnRename">Rename</button>
+    </div>
+    <div class="row"><span class="label">Firmware</span><span class="value" id="firmware">--</span></div>
+    <div class="row"><span class="label">Serial</span><span class="value" id="serial">--</span></div>
+    <div class="row" style="margin-top: 14px">
+      <span class="label hint" style="margin: 0">Resets every setting and restarts the microphone.</span>
+      <button class="danger" id="btnReset">Factory reset</button>
+    </div>
+  </section>
+
+  <!-- Presets -->
+  <section class="card">
+    <h2>Presets</h2>
+    <div class="row">
+      <input type="text" id="presetName" placeholder="Preset name" size="14" aria-label="Preset name">
+      <button id="btnSavePreset">Save snapshot</button>
+    </div>
+    <div class="preset-list" id="presetList"></div>
+    <div class="row" style="margin-top: 10px">
+      <button class="ghost" id="btnExport">Export</button>
+      <button class="ghost" id="btnImport">Import</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+    <p class="hint">Snapshots live in this browser's local storage. Mute stays untouched when a preset is applied.</p>
+  </section>
+
+  <!-- Raw traffic, for when the device behaves unexpectedly -->
+  <section class="card wide">
+    <details class="log" id="logPanel">
+      <summary>Packet log</summary>
+      <pre class="log" id="logOut"></pre>
+      <div class="row" style="margin-top: 8px">
+        <span class="label hint" style="margin: 0">64-byte HID reports, report ID included.</span>
+        <button id="btnClearLog">Clear</button>
+      </div>
+    </details>
+  </section>
+</main>
+
+<div id="toasts"></div>
+
+<dialog id="resetDialog">
+  <h3>Factory reset the microphone?</h3>
+  <p>Every setting goes back to its default, the device restarts, and this page loses its connection. You will need to connect again.</p>
+  <div class="actions">
+    <button id="btnResetCancel">Cancel</button>
+    <button class="danger" id="btnResetConfirm">Reset</button>
+  </div>
+</dialog>
+
+<script src="mv7-core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const core = window.MV7Core;
+  const $ = (id) => document.getElementById(id);
+
+  // HID IDs for the MV7+ vendor console.
+  const SHURE_VID = 0x14ed;
+  const MV7_PLUS_PID = 0x1019;
+
+  let client = null;
+  let transport = null;
+  let state = core.defaultState();
+  let busy = false;
+
+  // ---- Toasts ------------------------------------------------------------
+  function toast(message, kind) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (kind === 'error' ? ' error' : '');
+    el.textContent = message;
+    $('toasts').appendChild(el);
+    setTimeout(() => el.remove(), kind === 'error' ? 6000 : 3000);
+  }
+
+  // ---- WebHID transport --------------------------------------------------
+  //
+  // WebHID strips the report ID from the data buffer; the protocol keeps it in
+  // byte 0 of every frame, so it is re-attached on receive and removed on send.
+  class WebHIDTransport {
+    constructor(device) {
+      this.device = device;
+      this.handler = null;
+      this.reportId = 1;
+      this.dataLength = 63;
+      this.onInputReport = (event) => {
+        if (!this.handler) return;
+        this.handler({
+          reportId: event.reportId,
+          data: new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength),
+        });
+      };
+    }
+
+    static async request() {
+      if (!navigator.hid) {
+        throw new Error('This browser has no WebHID support. Use Chrome or Edge on Windows.');
+      }
+      const granted = await navigator.hid.getDevices();
+      let device = granted.find((d) => d.vendorId === SHURE_VID && d.productId === MV7_PLUS_PID);
+      if (!device) {
+        // Filter by vendor only: the picker then shows every Shure device, so
+        // an unusual MV7+ product ID is not hidden from the user.
+        const picked = await navigator.hid.requestDevice({
+          filters: [{ vendorId: SHURE_VID }],
+        });
+        device = picked && picked[0];
+      }
+      if (!device) throw new Error('No microphone was selected.');
+      if (device.productId !== MV7_PLUS_PID) {
+        throw new Error(
+          'That is a different Shure model. This dashboard needs the MV7+ (product ID 0x1019).'
+        );
+      }
+      return device;
+    }
+
+    async open() {
+      if (!this.device.opened) await this.device.open();
+      this.device.addEventListener('inputreport', this.onInputReport);
+
+      // Prefer a numbered report (the MV7+ console uses report ID 1). Fall
+      // back to the whole collection when the descriptor is unnumbered.
+      for (const collection of this.device.collections) {
+        for (const report of collection.outputReports) {
+          const bytes = bytesInReport(report);
+          if (bytes >= 63) {
+            this.reportId = report.reportId;
+            this.dataLength = bytes;
+            return;
+          }
+        }
+      }
+      this.reportId = 0;
+      this.dataLength = 64;
+    }
+
+    onReport(handler) {
+      this.handler = handler;
+    }
+
+    async write(packet) {
+      // The protocol frame is 64 bytes including the report ID, but WebHID
+      // takes the payload only. Descriptors differ on whether the ID counts
+      // toward the report length, so try the plausible shapes once and keep
+      // whichever the browser accepts.
+      const body = packet.slice(1);
+      if (!this.shape) {
+        this.shape = this.reportId === 1
+          ? [[1, body], [1, packet], [0, packet]]
+          : [[0, packet], [1, body]];
+      }
+      let lastError = null;
+      for (const [reportId, data] of this.shape) {
+        try {
+          await this.device.sendReport(reportId, data);
+          this.shape = [[reportId, data]];
+          return;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('The browser refused the HID report.');
+    }
+
+    async close() {
+      this.device.removeEventListener('inputreport', this.onInputReport);
+      if (this.device.opened) await this.device.close();
+    }
+  }
+
+  function bytesInReport(report) {
+    let bits = 0;
+    for (const item of report.items) bits += item.reportSize * item.reportCount;
+    return bits / 8;
+  }
+
+  // ---- Command log -------------------------------------------------------
+  const logLines = [];
+  function logPacket(direction, packet) {
+    if (direction === 'info') {
+      logLines.push('     ' + packet);
+    } else {
+      logLines.push((direction === 'tx' ? 'TX   ' : 'RX   ') + toHex(packet));
+    }
+    if (logLines.length > 400) logLines.shift();
+    if ($('logPanel').open) renderLog();
+  }
+  function toHex(bytes) {
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  function renderLog() {
+    $('logOut').textContent = logLines.slice(-200).join('\n');
+    $('logOut').scrollTop = $('logOut').scrollHeight;
+  }
+
+  // ---- Connection --------------------------------------------------------
+  async function connectReal() {
+    setBusy(true);
+    try {
+      const device = await WebHIDTransport.request();
+      if (transport) await transport.close().catch(() => {});
+      transport = new WebHIDTransport(device);
+      await transport.open();
+      client = new core.Client(transport, { log: logPacket });
+      await loadState();
+      $('btnConnect').textContent = 'Reconnect';
+      $('btnRefresh').hidden = false;
+      $('btnDemo').hidden = true;
+      setStatus('ok', 'MV7+ connected');
+      toast('Connected. Reading settings…');
+    } catch (err) {
+      setStatus('err', 'connection failed');
+      toast(err.message || String(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function connectDemo() {
+    if (transport) transport.close().catch(() => {});
+    transport = new core.DemoTransport(core.defaultState());
+    client = new core.Client(transport, { log: logPacket });
+    $('btnRefresh').hidden = false;
+    $('btnDemo').hidden = true;
+    setStatus('warn', 'demo device');
+    loadState();
+    toast('Demo mode: changes stay in this page.');
+  }
+
+  async function loadState() {
+    if (!client) return;
+    setBusy(true);
+    try {
+      state = await client.readState((progress, key) => {
+        $('deviceTag').textContent = 'reading ' + key + '…';
+      });
+      render(state);
+      const label = state.deviceName && state.deviceName !== 'Unknown' ? state.deviceName : 'MV7+';
+      $('deviceTag').textContent = label + (state.firmware ? ' · fw ' + state.firmware : '');
+    } catch (err) {
+      setStatus('err', 'no response');
+      toast(err.message || String(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function setStatus(kind, text) {
+    const dot = $('statusDot');
+    dot.className = 'dot' + (kind ? ' ' + kind : '');
+    if (text) $('deviceTag').textContent = text;
+  }
+
+  function setBusy(value) {
+    busy = value;
+    document.body.style.cursor = value ? 'progress' : '';
+  }
+
+  // ---- Rendering ---------------------------------------------------------
+  function render(next) {
+    state = next;
+
+    $('btnMute').textContent = state.muted ? 'Muted' : 'Mute';
+    $('btnMute').classList.toggle('muted', state.muted);
+    $('btnMute').setAttribute('aria-pressed', String(state.muted));
+
+    $('gain').value = state.gain.toFixed(1);
+    $('gainValue').textContent = state.gain.toFixed(1) + ' dB';
+    $('gain').disabled = state.autoLevel || state.gainLocked;
+    setSeg('segMode', state.autoLevel ? 1 : 0);
+    $('gainLocked').checked = state.gainLocked;
+
+    $('tone').value = state.tone;
+    $('toneValue').textContent = toneLabel(state.tone);
+    setSeg('segHpf', state.hpf);
+    setSeg('segCompressor', state.compressor);
+    $('limiter').checked = state.limiter;
+    $('denoiser').checked = state.denoiser;
+    $('popper').checked = state.popper;
+
+    $('micMix').value = state.micMix;
+    $('micMixValue').textContent = state.micMix + '%';
+    $('playbackMix').value = state.playbackMix;
+    $('playbackMixValue').textContent = state.playbackMix + '%';
+    $('muteButton').checked = state.muteButton;
+
+    $('reverbOutput').checked = state.reverbOutput;
+    $('reverbMonitor').checked = state.reverbMonitor;
+    setSeg('segReverbType', state.reverbType);
+    $('reverbIntensity').value = state.reverbIntensity;
+    $('reverbIntensityValue').textContent = state.reverbIntensity + '%';
+
+    setSeg('segLedBehavior', state.ledBehavior);
+    setSeg('segLedBrightness', state.ledBrightness);
+    $('selLiveTheme').value = String(state.ledLiveTheme);
+    $('ledLiveEdge').value = rgbToHex(state.ledLiveEdge);
+    $('ledLiveMiddle').value = rgbToHex(state.ledLiveMiddle);
+    $('ledLiveInterior').value = rgbToHex(state.ledLiveInterior);
+    $('selSolidTheme').value = String(state.ledSolidTheme);
+    $('ledSolidColor').value = rgbToHex(state.ledSolidColor);
+    $('selPulsingTheme').value = String(state.ledPulsingTheme);
+    $('ledPulsingColor').value = rgbToHex(state.ledPulsingColor);
+
+    $('deviceName').value = state.deviceName;
+    $('firmware').textContent = state.firmware || '--';
+    $('serial').textContent = state.serial || '--';
+  }
+
+  function toneLabel(percent) {
+    if (percent < 0) return Math.abs(percent) + '% Dark';
+    if (percent > 0) return percent + '% Bright';
+    return 'Natural';
+  }
+
+  function setSeg(id, value) {
+    for (const button of $(id).querySelectorAll('button[data-value]')) {
+      const on = Number(button.dataset.value) === value;
+      button.classList.toggle('on', on);
+      button.setAttribute('aria-pressed', String(on));
+    }
+  }
+
+  function rgbToHex(rgb) {
+    return '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function hexToRgb(hex) {
+    return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  }
+
+  // ---- Writes ------------------------------------------------------------
+  //
+  // Slider input fires many times per drag. Only the newest value per control
+  // is kept, and each control runs one job at a time, so the device sees a
+  // short, ordered stream instead of a backlog.
+  const writeJobs = new Map();
+  async function scheduleWrite(key, job) {
+    writeJobs.set(key, job);
+    if (writeJobs.get(key + ':running')) return;
+    writeJobs.set(key + ':running', true);
+    try {
+      while (writeJobs.has(key)) {
+        const next = writeJobs.get(key);
+        writeJobs.delete(key);
+        try {
+          await next();
+        } catch (err) {
+          toast(err.message || String(err), 'error');
+        }
+      }
+    } finally {
+      writeJobs.delete(key + ':running');
+    }
+  }
+
+  function requireDevice() {
+    if (!client) {
+      toast('Connect the microphone first.', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  function write(key, job) {
+    if (!requireDevice()) return;
+    scheduleWrite(key, job);
+  }
+
+  // ---- Wiring ------------------------------------------------------------
+  $('btnConnect').addEventListener('click', connectReal);
+  $('btnDemo').addEventListener('click', connectDemo);
+  $('btnRefresh').addEventListener('click', loadState);
+
+  $('btnMute').addEventListener('click', () => {
+    const next = !state.muted;
+    state.muted = next;
+    renderMuteOnly();
+    write('mute', () => client.setMuted(next));
+  });
+
+  function renderMuteOnly() {
+    $('btnMute').textContent = state.muted ? 'Muted' : 'Mute';
+    $('btnMute').classList.toggle('muted', state.muted);
+    $('btnMute').setAttribute('aria-pressed', String(state.muted));
+  }
+
+  $('gain').addEventListener('input', (event) => {
+    const value = Number(event.target.value);
+    state.gain = value;
+    $('gainValue').textContent = value.toFixed(1) + ' dB';
+    write('gain', () => client.setGain(value));
+  });
+
+  segWire('segMode', (value) => {
+    const auto = value === 1;
+    state.autoLevel = auto;
+    $('gain').disabled = auto || state.gainLocked;
+    write('autoLevel', () => client.setAutoLevel(auto));
+  });
+
+  switchWire('gainLocked', (checked) => {
+    state.gainLocked = checked;
+    $('gain').disabled = checked || state.autoLevel;
+    write('gainLocked', () => client.setGainLocked(checked));
+  });
+
+  $('tone').addEventListener('input', (event) => {
+    const value = Number(event.target.value);
+    state.tone = value;
+    $('toneValue').textContent = toneLabel(value);
+    write('tone', () => client.setTone(value));
+  });
+
+  segWire('segHpf', (value) => {
+    state.hpf = value;
+    write('hpf', () => client.setHPF(value));
+  });
+
+  segWire('segCompressor', (value) => {
+    state.compressor = value;
+    write('compressor', () => client.setCompressor(value));
+  });
+
+  switchWire('limiter', (checked) => {
+    state.limiter = checked;
+    write('limiter', () => client.setLimiter(checked));
+  });
+
+  switchWire('denoiser', (checked) => {
+    state.denoiser = checked;
+    write('denoiser', () => client.setDenoiser(checked));
+  });
+
+  switchWire('popper', (checked) => {
+    state.popper = checked;
+    write('popper', () => client.setPopper(checked));
+  });
+
+  sliderWire('micMix', (value) => {
+    state.micMix = value;
+    $('micMixValue').textContent = value + '%';
+    write('micMix', () => client.setMicMix(value));
+  });
+
+  sliderWire('playbackMix', (value) => {
+    state.playbackMix = value;
+    $('playbackMixValue').textContent = value + '%';
+    write('playbackMix', () => client.setPlaybackMix(value));
+  });
+
+  switchWire('muteButton', (checked) => {
+    state.muteButton = checked;
+    write('muteButton', () => client.setMuteButton(checked));
+  });
+
+  switchWire('reverbOutput', (checked) => {
+    state.reverbOutput = checked;
+    write('reverbOutput', () => client.setReverbOutput(checked));
+  });
+
+  switchWire('reverbMonitor', (checked) => {
+    state.reverbMonitor = checked;
+    write('reverbMonitor', () => client.setReverbMonitor(checked));
+  });
+
+  segWire('segReverbType', (value) => {
+    state.reverbType = value;
+    write('reverbType', () => client.setReverbType(value));
+  });
+
+  sliderWire('reverbIntensity', (value) => {
+    state.reverbIntensity = value;
+    $('reverbIntensityValue').textContent = value + '%';
+    write('reverbIntensity', () => client.setReverbIntensity(value));
+  });
+
+  segWire('segLedBehavior', (value) => {
+    state.ledBehavior = value;
+    write('ledBehavior', () => client.setLEDBehavior(value));
+  });
+
+  segWire('segLedBrightness', (value) => {
+    state.ledBrightness = value;
+    write('ledBrightness', () => client.setLEDBrightness(value));
+  });
+
+  $('selLiveTheme').addEventListener('change', (event) => {
+    const value = Number(event.target.value);
+    state.ledLiveTheme = value;
+    write('ledLiveTheme', () => client.setLEDTheme('live', value));
+  });
+
+  $('selSolidTheme').addEventListener('change', (event) => {
+    const value = Number(event.target.value);
+    state.ledSolidTheme = value;
+    write('ledSolidTheme', () => client.setLEDTheme('solid', value));
+  });
+
+  $('selPulsingTheme').addEventListener('change', (event) => {
+    const value = Number(event.target.value);
+    state.ledPulsingTheme = value;
+    write('ledPulsingTheme', () => client.setLEDTheme('pulsing', value));
+  });
+
+  colorWire('ledLiveEdge', 'liveEdge', 'ledLiveEdge');
+  colorWire('ledLiveMiddle', 'liveMiddle', 'ledLiveMiddle');
+  colorWire('ledLiveInterior', 'liveInterior', 'ledLiveInterior');
+  colorWire('ledSolidColor', 'solid', 'ledSolidColor');
+  colorWire('ledPulsingColor', 'pulsing', 'ledPulsingColor');
+
+  $('btnRename').addEventListener('click', () => {
+    const name = $('deviceName').value.trim();
+    if (!name) {
+      toast('Enter a name first.', 'error');
+      return;
+    }
+    state.deviceName = name;
+    write('rename', () => client.renameDevice(name));
+    toast('Name sent to the microphone.');
+  });
+
+  $('btnReset').addEventListener('click', () => $('resetDialog').showModal());
+  $('btnResetCancel').addEventListener('click', () => $('resetDialog').close());
+  $('btnResetConfirm').addEventListener('click', async () => {
+    $('resetDialog').close();
+    if (!requireDevice()) return;
+    await client.factoryReset();
+    toast('Reset sent. The microphone is restarting.');
+    setStatus('warn', 'restarting');
+  });
+
+  $('btnClearLog').addEventListener('click', () => {
+    logLines.length = 0;
+    renderLog();
+  });
+  $('logPanel').addEventListener('toggle', renderLog);
+
+  // ---- Segmented / switch / slider helpers -------------------------------
+  function segWire(id, onPick) {
+    $(id).addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-value]');
+      if (!button) return;
+      const value = Number(button.dataset.value);
+      setSeg(id, value);
+      onPick(value);
+    });
+  }
+
+  function switchWire(id, onChange) {
+    $(id).addEventListener('change', (event) => onChange(event.target.checked));
+  }
+
+  function sliderWire(id, onChange) {
+    $(id).addEventListener('input', (event) => onChange(Number(event.target.value)));
+  }
+
+  function colorWire(id, kind, stateKey) {
+    $(id).addEventListener('change', (event) => {
+      const rgb = hexToRgb(event.target.value);
+      state[stateKey] = rgb;
+      write(id, () => client.setLEDColor(kind, rgb));
+    });
+  }
+
+  // ---- Live meter --------------------------------------------------------
+  let meterStream = null;
+  let meterContext = null;
+  let meterFrame = 0;
+  let peak = -90;
+  let peakAt = 0;
+  let lastMeterFrame = 0;
+
+  $('btnMeter').addEventListener('click', async () => {
+    if (meterStream) {
+      stopMeter();
+      return;
+    }
+    try {
+      await startMeter();
+    } catch (err) {
+      toast(err.message || String(err), 'error');
+    }
+  });
+
+  async function startMeter() {
+    // Prefer the MV7+ input, but fall back to the default device when labels
+    // are unavailable before the first permission grant.
+    let deviceId;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const mic = devices.find((d) => d.kind === 'audioinput' && /mv7/i.test(d.label));
+    if (mic) deviceId = mic.deviceId;
+
+    const constraints = {
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+      },
+    };
+    meterStream = await navigator.mediaDevices.getUserMedia(constraints);
+    const track = meterStream.getAudioTracks()[0];
+    $('meterDevice').textContent = track.label || 'Default input';
+
+    meterContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = meterContext.createMediaStreamSource(meterStream);
+    const analyser = meterContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    const samples = new Float32Array(analyser.fftSize);
+
+    $('btnMeter').textContent = 'Stop';
+
+    const loop = () => {
+      analyser.getFloatTimeDomainData(samples);
+      let sum = 0;
+      let high = 0;
+      for (let i = 0; i < samples.length; i++) {
+        const sample = samples[i];
+        sum += sample * sample;
+        const magnitude = Math.abs(sample);
+        if (magnitude > high) high = magnitude;
+      }
+      const rms = Math.sqrt(sum / samples.length);
+      const dbfs = rms > 0 ? 20 * Math.log10(rms) : -90;
+      drawMeter(dbfs, high > 0 ? 20 * Math.log10(high) : -90);
+      meterFrame = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  function drawMeter(rmsDb, peakDb) {
+    const clamped = Math.max(-60, Math.min(0, rmsDb));
+    const ratio = (clamped + 60) / 60;
+    $('meterBar').style.width = (ratio * 100).toFixed(1) + '%';
+
+    const now = performance.now();
+    if (peakDb >= peak) {
+      peak = Math.max(-60, Math.min(0, peakDb));
+      peakAt = now;
+    } else if (now - peakAt > 900) {
+      // Hold the peak briefly, then let it fall about 24 dB per second.
+      peak = Math.max(-60, peak - ((now - lastMeterFrame) / 1000) * 24);
+    }
+    lastMeterFrame = now;
+    $('meterPeak').style.left = (((peak + 60) / 60) * 100).toFixed(1) + '%';
+    $('meterPeakValue').textContent = peakDb > -90 ? peakDb.toFixed(1) + ' dBFS' : '--';
+  }
+
+  function stopMeter() {
+    cancelAnimationFrame(meterFrame);
+    if (meterStream) meterStream.getTracks().forEach((track) => track.stop());
+    if (meterContext) meterContext.close();
+    meterStream = null;
+    meterContext = null;
+    peak = -90;
+    $('btnMeter').textContent = 'Start';
+    $('meterDevice').textContent = 'Not metering';
+    $('meterBar').style.width = '0';
+    $('meterPeak').style.left = '0';
+    $('meterPeakValue').textContent = '--';
+  }
+
+  // ---- Presets -----------------------------------------------------------
+  const PRESET_KEY = 'mv7plus.presets.v1';
+  const PRESET_FIELDS = [
+    'gain', 'gainLocked', 'autoLevel', 'hpf', 'limiter', 'compressor', 'denoiser', 'popper',
+    'tone', 'micMix', 'playbackMix', 'muteButton', 'reverbOutput', 'reverbType',
+    'reverbIntensity', 'reverbMonitor', 'ledBehavior', 'ledBrightness', 'ledLiveTheme',
+    'ledLiveEdge', 'ledLiveMiddle', 'ledLiveInterior', 'ledSolidTheme', 'ledSolidColor',
+    'ledPulsingTheme', 'ledPulsingColor',
+  ];
+
+  function readPresets() {
+    try {
+      return JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function writePresets(list) {
+    localStorage.setItem(PRESET_KEY, JSON.stringify(list));
+    renderPresets();
+  }
+
+  function snapshot() {
+    const out = { name: '', savedAt: new Date().toISOString() };
+    for (const field of PRESET_FIELDS) out[field] = state[field];
+    return out;
+  }
+
+  function renderPresets() {
+    const list = readPresets();
+    const host = $('presetList');
+    host.textContent = '';
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'No presets saved yet.';
+      host.appendChild(empty);
+      return;
+    }
+    list.forEach((preset, index) => {
+      const row = document.createElement('div');
+      row.className = 'preset';
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = preset.name;
+      row.appendChild(name);
+
+      const apply = document.createElement('button');
+      apply.textContent = 'Apply';
+      apply.addEventListener('click', () => applyPreset(preset));
+      row.appendChild(apply);
+
+      const remove = document.createElement('button');
+      remove.textContent = 'Delete';
+      remove.className = 'danger';
+      remove.addEventListener('click', () => {
+        const next = readPresets();
+        next.splice(index, 1);
+        writePresets(next);
+      });
+      row.appendChild(remove);
+
+      host.appendChild(row);
+    });
+  }
+
+  $('btnSavePreset').addEventListener('click', () => {
+    if (!requireDevice()) return;
+    const name = $('presetName').value.trim() || 'Preset ' + (readPresets().length + 1);
+    const preset = snapshot();
+    preset.name = name;
+    const list = readPresets();
+    list.push(preset);
+    writePresets(list);
+    $('presetName').value = '';
+    toast('Saved "' + name + '".');
+  });
+
+  async function applyPreset(preset) {
+    if (!requireDevice()) return;
+    toast('Applying "' + preset.name + '"…');
+    // Gain needs manual mode and an unlocked gain, so it goes last, after the
+    // saved lock and mode values are restored.
+    const order = PRESET_FIELDS.filter(
+      (field) => field !== 'gain' && field !== 'gainLocked' && field !== 'autoLevel'
+    );
+
+    for (const field of order) {
+      if (preset[field] === undefined) continue;
+      await applyField(field, preset[field]);
+    }
+
+    if (preset.autoLevel !== undefined) {
+      state.autoLevel = false;
+      await client.setAutoLevel(false);
+    }
+    if (preset.gainLocked !== undefined) {
+      state.gainLocked = false;
+      await client.setGainLocked(false);
+    }
+    if (preset.gain !== undefined) {
+      state.gain = preset.gain;
+      await client.setGain(preset.gain);
+    }
+    if (preset.gainLocked !== undefined) await client.setGainLocked(preset.gainLocked);
+    if (preset.autoLevel !== undefined) await client.setAutoLevel(preset.autoLevel);
+
+    render(state);
+    toast('Applied "' + preset.name + '".');
+  }
+
+  async function applyField(field, value) {
+    switch (field) {
+      case 'hpf': state.hpf = value; return client.setHPF(value);
+      case 'limiter': state.limiter = value; return client.setLimiter(value);
+      case 'compressor': state.compressor = value; return client.setCompressor(value);
+      case 'denoiser': state.denoiser = value; return client.setDenoiser(value);
+      case 'popper': state.popper = value; return client.setPopper(value);
+      case 'tone': state.tone = value; return client.setTone(value);
+      case 'micMix': state.micMix = value; return client.setMicMix(value);
+      case 'playbackMix': state.playbackMix = value; return client.setPlaybackMix(value);
+      case 'muteButton': state.muteButton = value; return client.setMuteButton(value);
+      case 'reverbOutput': state.reverbOutput = value; return client.setReverbOutput(value);
+      case 'reverbMonitor': state.reverbMonitor = value; return client.setReverbMonitor(value);
+      case 'reverbType': state.reverbType = value; return client.setReverbType(value);
+      case 'reverbIntensity': state.reverbIntensity = value; return client.setReverbIntensity(value);
+      case 'ledBehavior': state.ledBehavior = value; return client.setLEDBehavior(value);
+      case 'ledBrightness': state.ledBrightness = value; return client.setLEDBrightness(value);
+      case 'ledLiveTheme': state.ledLiveTheme = value; return client.setLEDTheme('live', value);
+      case 'ledLiveEdge': state.ledLiveEdge = value; return client.setLEDColor('liveEdge', value);
+      case 'ledLiveMiddle': state.ledLiveMiddle = value; return client.setLEDColor('liveMiddle', value);
+      case 'ledLiveInterior': state.ledLiveInterior = value; return client.setLEDColor('liveInterior', value);
+      case 'ledSolidTheme': state.ledSolidTheme = value; return client.setLEDTheme('solid', value);
+      case 'ledSolidColor': state.ledSolidColor = value; return client.setLEDColor('solid', value);
+      case 'ledPulsingTheme': state.ledPulsingTheme = value; return client.setLEDTheme('pulsing', value);
+      case 'ledPulsingColor': state.ledPulsingColor = value; return client.setLEDColor('pulsing', value);
+      default: return undefined;
+    }
+  }
+
+  $('btnExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(readPresets(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mv7plus-presets.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  $('btnImport').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const incoming = JSON.parse(await file.text());
+      if (!Array.isArray(incoming)) throw new Error('That file does not hold a preset list.');
+      const list = readPresets();
+      for (const preset of incoming) {
+        if (!preset || typeof preset.name !== 'string') continue;
+        list.push(preset);
+      }
+      writePresets(list);
+      toast('Imported ' + incoming.length + ' preset(s).');
+    } catch (err) {
+      toast(err.message || String(err), 'error');
+    } finally {
+      event.target.value = '';
+    }
+  });
+
+  // ---- Boot --------------------------------------------------------------
+  renderPresets();
+  setStatus('', 'not connected');
+  if (new URLSearchParams(location.search).has('demo')) connectDemo();
+
+  // A device unplugged mid-session leaves the client with a dead transport.
+  if (navigator.hid) {
+    navigator.hid.addEventListener('disconnect', (event) => {
+      if (event.device.vendorId === SHURE_VID && event.device.productId === MV7_PLUS_PID) {
+        client = null;
+        setStatus('err', 'disconnected');
+        toast('Microphone disconnected.', 'error');
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
