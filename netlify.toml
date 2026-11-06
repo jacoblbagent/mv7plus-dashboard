@@ -1,0 +1,20 @@
+# Netlify config for the MV7+ dashboard.
+#
+# The dashboard is two static files with no build step; Netlify just needs a
+# clean publish directory. WebHID works on any HTTPS origin, so the hosted copy
+# controls the microphone attached to the visitor's own machine.
+[build]
+  publish = "dist/netlify"
+  command = "mkdir -p dist/netlify && cp index.html mv7-core.js dist/netlify/ && touch dist/netlify/.nojekyll"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/mv7-core.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

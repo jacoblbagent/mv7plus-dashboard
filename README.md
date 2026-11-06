@@ -45,6 +45,10 @@ HTTPS. WebHID only needs a secure context, so the hosted page controls whatever
 MV7+ is plugged into the machine running the browser; nothing is sent to the
 server, which only delivers static files.
 
+`netlify.toml` stages the same two files for Netlify: the build command copies
+them into `dist/netlify` and nothing else is published. Any static host with
+HTTPS works, because the page has no backend.
+
 ## Controls
 
 | Card | What it sets | Device value |
