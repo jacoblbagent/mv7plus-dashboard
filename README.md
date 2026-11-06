@@ -32,6 +32,12 @@ Two ways, both local to the PC:
 `?demo=1` on the URL starts a simulated device with the same protocol, for
 trying the interface without hardware.
 
+### Single-file build
+
+`node build-single.mjs` writes `dist/MV7Plus-Control.html`: the same dashboard
+with the core script inlined, so one file is enough to copy to another machine.
+`dist/mv7plus-dashboard.zip` holds the split version plus the Windows launcher.
+
 ## Controls
 
 | Card | What it sets | Device value |
