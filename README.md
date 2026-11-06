@@ -38,16 +38,20 @@ trying the interface without hardware.
 with the core script inlined, so one file is enough to copy to another machine.
 `dist/mv7plus-dashboard.zip` holds the split version plus the Windows launcher.
 
-### Hosted copy
+### Hosted copies
 
-https://jacoblbagent.github.io/mv7plus-dashboard/ serves the same two files over
-HTTPS. WebHID only needs a secure context, so the hosted page controls whatever
-MV7+ is plugged into the machine running the browser; nothing is sent to the
-server, which only delivers static files.
+- https://mv7plus-control.netlify.app/ (Netlify, deployed from this folder)
+- https://jacoblbagent.github.io/mv7plus-dashboard/ (GitHub Pages, pushes to `main`)
 
-`netlify.toml` stages the same two files for Netlify: the build command copies
-them into `dist/netlify` and nothing else is published. Any static host with
-HTTPS works, because the page has no backend.
+Both serve the same two files over HTTPS. WebHID only needs a secure context, so
+a hosted page controls whatever MV7+ is plugged into the machine running the
+browser; nothing is sent to the server, which only delivers static files.
+
+Redeploy Netlify with `NETLIFY_AUTH_TOKEN=... ./deploy-netlify.sh`. It packs
+`index.html`, `mv7-core.js` and `_headers` into a prebuilt deploy and waits for
+the deploy to go live. `netlify.toml` covers the other case, a Git-connected
+Netlify site that builds on push: it stages the same two files into
+`dist/netlify` and publishes nothing else.
 
 ## Controls
 
