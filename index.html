@@ -478,7 +478,17 @@
 
   <!-- Raw traffic, for when the device behaves unexpectedly -->
   <section class="card wide">
-    <details class="log" id="logPanel">
+    <details class="log" id="helpPanel">
+      <summary>Troubleshooting</summary>
+      <ul class="hint" style="margin: 10px 0 0; padding-left: 18px; line-height: 1.8">
+        <li>The picker shows nothing: use Chrome or Edge, connect with a USB-C data cable, replug the microphone, and close MOTIV Mix first.</li>
+        <li>Buttons stop responding: MOTIV Mix or another app has taken the device. Close it and press Reconnect.</li>
+        <li>Gain will not move: Auto Level or gain lock is on. Both override the slider by design.</li>
+        <li>A write fails with "browser refused the HID report": open the packet log and note the last TX line, then reload the page.</li>
+        <li>After a factory reset the device restarts, so the page has to connect again.</li>
+      </ul>
+    </details>
+    <details class="log" id="logPanel" style="margin-top: 14px">
       <summary>Packet log</summary>
       <pre class="log" id="logOut"></pre>
       <div class="row" style="margin-top: 8px">
